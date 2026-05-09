@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Outlet Audit Form</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --primary: #1A56DB;
+  --primary-light: #EBF2FF;
+  --primary-dark: #1035A0;
+  --accent: #F59E0B;
+  --accent-light: #FEF3C7;
+  --danger: #DC2626;
+  --danger-light: #FEE2E2;
+  --success: #16A34A;
+  --success-light: #DCFCE7;
+  --warning: #D97706;
+  --warning-light: #FEF3C7;
+  --na: #6B7280;
+  --na-light: #F3F4F6;
+  --gray: #F8FAFC;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --text-muted: #64748B;
+  --white: #ffffff;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--gray);
+  color: var(--text);
+  min-height: 100vh;
+  padding-bottom: 90px;
+}
+.header {
+  background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+  color: white;
+  padding: 14px 18px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(26,86,219,0.25);
+}
+.header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.header p { font-size: 12px; opacity: 0.8; margin-top: 2px; }
+
+/* Screens */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Type Select */
+.type-select { padding: 20px 16px; }
+.type-intro { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; font-weight: 500; }
+.type-card {
+  background: var(--white);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.type-card:active { transform: scale(0.98); }
+.type-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.type-icon-wrap {
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.type-card.selected .type-icon-wrap { background: var(--primary); }
+.type-info { flex: 1; }
+.type-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+.type-card p { font-size: 12px; color: var(--text-muted); }
+.type-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--primary-light);
+  padding: 3px 8px;
+  border-radius: 20px;
+  margin-top: 6px;
+  display: inline-block;
+}
+.type-card.selected .type-badge { background: rgba(255,255,255,0.5); }
+
+/* Info Form */
+.info-form { padding: 16px; }
+.form-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 20px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.field { margin-bottom: 14px; }
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.field input, .field select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  background: var(--white);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field input:focus, .field select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(26,86,219,0.08);
+}
+
+/* Category headers */
+.category-header {
+  background: var(--primary);
+  color: white;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  position: sticky;
+  top: 64px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nn-header { background: var(--danger); }
+
+/* Audit Items */
+.audit-item {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+}
+.audit-item.scored-na { background: #FAFAFA; }
+.item-top { display: flex; gap: 10px; align-items: flex-start; }
+.item-num {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-radius: 7px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.item-inspection { font-size: 13px; line-height: 1.55; color: var(--text); flex: 1; }
+
+/* Score buttons */
+.score-row {
+  display: flex;
+  gap: 5px;
+  margin-top: 12px;
+}
+.score-btn {
+  flex: 1;
+  padding: 10px 2px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+.score-btn:active { transform: scale(0.93); }
+.score-btn.s1.active { background: var(--danger-light); border-color: var(--danger); color: #991B1B; }
+.score-btn.s2.active { background: #FEF3C7; border-color: #F59E0B; color: #92400E; }
+.score-btn.s3.active { background: #FEF9C3; border-color: #EAB308; color: #713F12; }
+.score-btn.s4.active { background: #DCFCE7; border-color: #4ADE80; color: #15803D; }
+.score-btn.s5.active { background: var(--success-light); border-color: var(--success); color: #14532D; }
+.score-btn.na-btn { font-size: 11px; font-weight: 700; letter-spacing: 0.02em; }
+.score-btn.na-btn.active { background: var(--na-light); border-color: var(--na); color: #374151; }
+
+.score-label {
+  display: flex;
+  gap: 5px;
+  margin-top: 4px;
+}
+.score-label span {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.score-label .na-lbl { flex: 1; text-align: center; font-size: 9px; color: var(--text-muted); }
+
+.remarks-input {
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  background: var(--gray);
+  color: var(--text);
+  outline: none;
+  resize: none;
+  height: 58px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.remarks-input:focus { border-color: var(--primary); background: var(--white); }
+.na-overlay {
+  font-size: 12px;
+  color: var(--na);
+  font-style: italic;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: var(--na-light);
+  border-radius: 6px;
+  display: none;
+}
+
+/* Score bar */
+.score-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--white);
+  border-top: 2px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 200;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+}
+.score-display {
+  background: var(--primary-light);
+  border-radius: 10px;
+  padding: 8px 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.score-display .num { font-size: 18px; font-weight: 800; color: var(--primary-dark); }
+.score-display .lbl { font-size: 10px; color: var(--primary); font-weight: 600; }
+.progress-wrap { flex: 1; }
+.progress-bg {
+  background: var(--border);
+  border-radius: 10px;
+  height: 7px;
+  overflow: hidden;
+}
+.progress-fill {
+  background: linear-gradient(90deg, var(--primary), #6366F1);
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.3s;
+}
+.progress-pct { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+.btn-submit-bar {
+  background: var(--primary);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.btn-submit-bar:active { background: var(--primary-dark); }
+
+/* Buttons */
+.btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(26,86,219,0.2); }
+.btn-primary:active { background: var(--primary-dark); }
+.btn-outline {
+  background: var(--white);
+  color: var(--text-muted);
+  border: 1.5px solid var(--border);
+  margin-top: 10px;
+}
+
+.section-pad { padding: 16px; }
+
+/* Success */
+.success-screen { padding: 32px 20px; text-align: center; }
+.success-icon {
+  width: 80px; height: 80px;
+  background: var(--success-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  font-size: 36px;
+}
+.success-screen h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+.success-screen p { color: var(--text-muted); font-size: 14px; line-height: 1.5; }
+.score-result {
+  background: linear-gradient(135deg, var(--primary-light), #EDE9FE);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px 0;
+}
+.score-result .big { font-size: 40px; font-weight: 800; color: var(--primary-dark); }
+.score-result .sub { font-size: 15px; color: var(--primary); font-weight: 600; margin-top: 4px; }
+.pdf-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(245,158,11,0.3);
+}
+.pdf-btn:active { transform: scale(0.98); background: #D97706; }
+
+/* Loading */
+.loading-overlay {
+  position: fixed; top:0;left:0;right:0;bottom:0;
+  background: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  flex-direction: column;
+  gap: 16px;
+  backdrop-filter: blur(4px);
+}
+.spinner {
+  width: 40px; height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-overlay p { font-size: 14px; color: var(--text-muted); font-weight: 500; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: #1E293B; color: white;
+  padding: 10px 20px; border-radius: 20px;
+  font-size: 13px; z-index: 999;
+  opacity: 0; transition: opacity 0.3s;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<script>
+const SUPABASE_URL = 'https://bwznptbatudqyndrhjuh.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_U_08vXUe_O0W-ovvyBvX_w_5NPMnNb_';
+</script>
+
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="spinner"></div>
+  <p id="loadingText">Submitting audit...</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<div class="header">
+  <h1 id="headerTitle">🏢 Outlet Audit</h1>
+  <p id="headerSub">Select audit type to begin</p>
+</div>
+
+<!-- SCREEN 1: Select audit type -->
+<div class="screen active" id="screenType">
+  <div class="type-select">
+    <div class="type-intro">Select audit type:</div>
+
+    <div class="type-card" id="cardFront" onclick="selectType('front')">
+      <div class="type-icon-wrap">🏪</div>
+      <div class="type-info">
+        <h3>Front of House (FOH)</h3>
+        <p>General, Service, Bar, Cake Display, Cashier, Organisation</p>
+        <span class="type-badge">48 items · Max 240 pts</span>
+      </div>
+    </div>
+
+    <div class="type-card" id="cardKitchen" onclick="selectType('kitchen')">
+      <div class="type-icon-wrap">👨‍🍳</div>
+      <div class="type-info">
+        <h3>Back of House (BOH)</h3>
+        <p>General, Cooking Area, Dish Out Area, Petty Cash, Organisation</p>
+        <span class="type-badge">28 items · Max 140 pts</span>
+      </div>
+    </div>
+
+    <div class="type-card" id="cardBoth" onclick="selectType('both')">
+      <div class="type-icon-wrap">🏢</div>
+      <div class="type-info">
+        <h3>Full Audit (FOH + BOH)</h3>
+        <p>Complete audit covering all Front and Kitchen sections</p>
+        <span class="type-badge">76 items · Max 380 pts</span>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="goToInfo()" style="margin-top:8px;">Next →</button>
+  </div>
+</div>
+
+<!-- SCREEN 2: Outlet info -->
+<div class="screen" id="screenInfo">
+  <div class="info-form">
+    <div class="form-section-title">Audit Information</div>
+    <div class="field">
+      <label>Outlet Name</label>
+      <input type="text" id="outletName" placeholder="e.g. Brickhouse KL" />
+    </div>
+    <div class="field">
+      <label>Audited By</label>
+      <input type="text" id="auditBy" placeholder="Auditor name" />
+    </div>
+    <div class="field">
+      <label>Person In Charge (PIC)</label>
+      <input type="text" id="picName" placeholder="PIC name" />
+    </div>
+    <div class="field">
+      <label>Audit Date</label>
+      <input type="date" id="auditDate" />
+    </div>
+    <button class="btn btn-primary" onclick="goToAudit()">Start Audit →</button>
+    <button class="btn btn-outline" onclick="showScreen('screenType')">← Back</button>
+  </div>
+</div>
+
+<!-- SCREEN 3: Audit form -->
+<div class="screen" id="screenAudit">
+  <div id="auditBody"></div>
+  <div class="section-pad">
+    <button class="btn btn-primary" onclick="submitAudit()">✅ Submit Audit</button>
+    <button class="btn btn-outline" onclick="showScreen('screenInfo')">← Back</button>
+  </div>
+</div>
+
+<!-- Score bar -->
+<div class="score-bar" id="scoreBar" style="display:none">
+  <div class="score-display">
+    <div class="num" id="scoreNum">0</div>
+    <div class="lbl">pts</div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bg">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-pct" id="progressPct">0% completed</div>
+  </div>
+  <button class="btn-submit-bar" onclick="submitAudit()">Submit</button>
+</div>
+
+<!-- SCREEN 4: Success -->
+<div class="screen" id="screenSuccess">
+  <div class="success-screen">
+    <div class="success-icon">✅</div>
+    <h2>Audit Submitted!</h2>
+    <p>Data saved to dashboard. Manager can view it now.</p>
+    <div class="score-result">
+      <div class="big" id="finalScore">-</div>
+      <div class="sub" id="finalPct">-</div>
+    </div>
+    <button class="pdf-btn" onclick="downloadPDF()">📄 Download PDF Report</button>
+    <button class="btn btn-primary" onclick="resetApp()">+ New Audit</button>
+  </div>
+</div>
+
+<script>
+// ============================
+// AUDIT DATA
+// ============================
+const FRONT_AUDIT = [
+  {
+    category: 'NON-NEGOTIABLES', isNN: true,
+    items: [
+      { no:1, text:'All switches in the outlet are turned on & devices that are needed to use is fully charged' },
+      { no:2, text:'Furniture is organized neatly' },
+      { no:3, text:'Entrance of outlet is clean & not obstructed' },
+      { no:4, text:'All plants are presentable e.g. plants are not dying or poorly arranged' },
+      { no:5, text:'Common area: Suitable music is on • Chairs & table are arranged properly • All bussing stations are clean & utensils, condiments are fully topped up' },
+      { no:6, text:'Common area cleanliness: Table / Chairs / Bench / Upholstered furniture • Floor / Wall / Ceiling / Door / Lighting' },
+      { no:7, text:'Outlet odour is neutral' },
+      { no:8, text:'Weekly Spring Cleaning has been done properly' },
+      { no:9, text:'Check on Fly Trap: Sticker pads changed • Cleanliness' },
+    ]
+  },
+  {
+    category: 'SERVICE',
+    items: [
+      { no:1, text:'Host is at the main entrance (must be presentable with proper greeting manner)' },
+      { no:2, text:'All staff welcome guests in friendly, poised manner' },
+      { no:3, text:'All staff are properly groomed & uniform are neat; ironed, free from stains' },
+      { no:4, text:'Item 86 • Recommendations on food / dessert, pastry counter • Offer alcohol menu for non-muslims • Lift the menu from the table after order taking' },
+      { no:5, text:'Service crew has good menu knowledge when asked' },
+      { no:6, text:'All updated menu are arranged and displayed well. Ensure not utilizing the spoiled ones' },
+      { no:7, text:'Table setting done according to SOP' },
+      { no:8, text:'Table arrangements during turn overs are done correctly & cleaned in timely manner' },
+      { no:9, text:"All station leads/floor associates are doing 'Happiness check' (1 min check) on each tables" },
+    ]
+  },
+  {
+    category: 'BAR',
+    items: [
+      { no:1, text:'Bar area is in good condition: Bar / Sink / Fridge / Coffee / Water dispenser / Bins / Microwave / Floor / Lighting' },
+      { no:2, text:'Bar area is clean: Bar mats / Sink / Fridge / Coffee / Water dispenser / Rubbish bins - not overflowing / Microwave / Floor / Lighting' },
+      { no:3, text:'Display and arrangements: All glasses are clean and displayed neatly • All glasses are lined on top of bar mats and facing down • All condiments containers stored hygienically' },
+      { no:4, text:'All fruit juices are fully sliced & prepped in the morning and properly stored in labelled containers' },
+      { no:5, text:'All opened food are labelled with the label expiry date' },
+      { no:6, text:'Bar area meets standards, cleaning items are neatly organised or concealed from view' },
+      { no:7, text:'Fridge odour is neutral' },
+      { no:8, text:'Service for Bar Fridge: Temperature is updated • Service date is updated' },
+      { no:9, text:'Standing Order Forms are utilized & arranged properly' },
+      { no:10, text:'All wastages & transferred items are recorded in the provided log book' },
+      { no:11, text:'Inventory Lists are arranged properly' },
+      { no:12, text:'All coffee & beverage meets its standards e.g. presentation & garnished' },
+    ]
+  },
+  {
+    category: 'CAKE DISPLAY',
+    items: [
+      { no:1, text:'Desserts & pastry quality: Check cakes to ensure freshness, note wastages in logbooks • Both inside & outside chiller mirrors are wiped down • Cake chiller temperature is monitored' },
+      { no:2, text:'Ensure the neatness and visibility of all cakes & pastries' },
+      { no:3, text:'Cake stands are correct and placed' },
+      { no:4, text:'Price tags and dessert labels are displayed properly' },
+      { no:5, text:'All additional stocks is covered with cling wrap and stored in the fridge neatly' },
+    ]
+  },
+  {
+    category: 'CASHIER',
+    items: [
+      { no:2, text:'Overall cleanliness at cash drawer e.g. bill folders, credit card machines etc are organised properly; not messy' },
+      { no:3, text:'Cash drawer amount is tallied' },
+      { no:4, text:'All pending bills or saved bills are managed correctly' },
+    ]
+  },
+  {
+    category: 'ORGANISATION',
+    items: [
+      { no:1, text:'All stores are properly organised NOT hoarded & messy' },
+      { no:2, text:'Report books and files are kept and arranged neatly' },
+      { no:3, text:'Make sure printed schedule at outlet (BOH & FOH)' },
+      { no:4, text:'Updated inventory list should be there with updated numbers' },
+      { no:5, text:'All staff belongings e.g. bags / helmet etc. are kept properly at the allocated space' },
+      { no:6, text:'All counters are clean, take away boxes, equipments arranged' },
+      { no:7, text:'Bottle or juices should be placed accordingly and labelled with dates (FIFO: first in first out)' },
+      { no:8, text:'Toilet dustbins is clean, tissues & soap are topped up' },
+    ]
+  }
+];
+
+const KITCHEN_AUDIT = [
+  {
+    category: 'GENERAL (BOH)',
+    items: [
+      { no:1, text:'All chefs are well groomed (nails & hair)' },
+      { no:2, text:'All chefs in proper attire (apron, cap, black shoes, black pants)' },
+      { no:3, text:'Kitchen floor is clean and not obstructed' },
+      { no:4, text:'Updated SOP are displayed well' },
+      { no:5, text:'Weekly spring cleaning has been done properly' },
+      { no:6, text:'Check on Fly Trap: Sticker pads changed • Cleanliness' },
+    ]
+  },
+  {
+    category: 'COOKING AREA',
+    items: [
+      { no:1, text:'Equipments and other items are organized neatly' },
+      { no:2, text:'Common Area: Stations are clean • Ducting and kitchen wall are clean' },
+      { no:3, text:'Odor is neutral (chiller, freezer & grease trap)' },
+      { no:4, text:'Service for chiller & freezer: Update the temperature accordingly • Update the Service date timely' },
+      { no:5, text:'All opened food items are labelled: All opened food got sticker label with date' },
+      { no:6, text:'Item prepped accordingly in the morning and properly stored in container and labelled' },
+    ]
+  },
+  {
+    category: 'DISH OUT AREA',
+    items: [
+      { no:1, text:'Food presentation meets standards according to the SOP' },
+      { no:2, text:'All condiments are stored in a hygienic manner' },
+      { no:3, text:'All opened food items are labelled: Sticker labelled with date' },
+      { no:4, text:'Dish out area meets standard: Cleaning items are neatly organized or concealed from view' },
+      { no:5, text:'Chiller and Freezer odour is neutral' },
+      { no:6, text:'Equipments is maintained and keep in good condition' },
+      { no:7, text:'Service for chiller & freezer: Temperature updated accordingly • Service date is updated' },
+      { no:8, text:'Take away box enough for daily operations: Topped up accordingly • Inventory is up to date' },
+    ]
+  },
+  {
+    category: 'PETTY CASH',
+    items: [
+      { no:1, text:'Petty Cash Handling - up to date recording' },
+      { no:2, text:'PIC holding on the cash amount' },
+    ]
+  },
+  {
+    category: 'ORGANISATION (BOH)',
+    items: [
+      { no:1, text:'Rubbish Bins tidy' },
+      { no:2, text:'Report books and files, arranged in file folders and kept neatly' },
+      { no:3, text:'Belongings should not be in the Kitchen area' },
+      { no:4, text:'Wastage, Item Transfer, Stock Count & Inventory is recorded' },
+      { no:5, text:'Report books and files are kept and arranged neatly' },
+    ]
+  }
+];
+
+// ============================
+// STATE
+// ============================
+let currentType = null;
+let scores = {};
+let remarks = {};
+let naItems = {};
+let auditData = [];
+let maxScore = 0;
+let lastSubmission = null;
+
+// ============================
+// NAVIGATION
+// ============================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const scoreBar = document.getElementById('scoreBar');
+  scoreBar.style.display = id === 'screenAudit' ? 'flex' : 'none';
+  window.scrollTo(0, 0);
+}
+
+function selectType(type) {
+  currentType = type;
+  ['cardFront','cardKitchen','cardBoth'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  const map = { front:'cardFront', kitchen:'cardKitchen', both:'cardBoth' };
+  document.getElementById(map[type]).classList.add('selected');
+}
+
+function goToInfo() {
+  if (!currentType) { showToast('Please select an audit type first'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('auditDate').value = today;
+  const titles = { front:'🏪 FOH Audit', kitchen:'👨‍🍳 BOH Audit', both:'🏢 Full Audit (FOH + BOH)' };
+  document.getElementById('headerTitle').textContent = titles[currentType];
+  document.getElementById('headerSub').textContent = 'Outlet Information';
+  showScreen('screenInfo');
+}
+
+function goToAudit() {
+  const outletName = document.getElementById('outletName').value.trim();
+  const auditBy = document.getElementById('auditBy').value.trim();
+  const picName = document.getElementById('picName').value.trim();
+  const auditDate = document.getElementById('auditDate').value;
+  if (!outletName || !auditBy || !picName || !auditDate) {
+    showToast('Please fill in all fields');
+    return;
+  }
+  scores = {}; remarks = {}; naItems = {};
+  buildAuditForm();
+  document.getElementById('headerSub').textContent = outletName;
+  showScreen('screenAudit');
+  updateScoreBar();
+}
+
+// ============================
+// BUILD FORM
+// ============================
+function buildAuditForm() {
+  let data;
+  if (currentType === 'front') data = FRONT_AUDIT;
+  else if (currentType === 'kitchen') data = KITCHEN_AUDIT;
+  else data = [...FRONT_AUDIT, ...KITCHEN_AUDIT];
+  auditData = data;
+  maxScore = 0;
+  let html = '';
+  data.forEach((section, si) => {
+    const isNN = section.isNN;
+    html += `<div class="category-header ${isNN ? 'nn-header' : ''}">
+      <span>${section.category}</span>
+      ${isNN ? '<span style="font-size:10px;opacity:0.8;background:rgba(255,255,255,0.2);padding:2px 7px;border-radius:10px;">NON-NEGOTIABLE</span>' : ''}
+    </div>`;
+    section.items.forEach((item, ii) => {
+      const key = `${si}_${ii}`;
+      maxScore += 5;
+      html += `
+      <div class="audit-item" id="item_${key}">
+        <div class="item-top">
+          <div class="item-num">${item.no}</div>
+          <div class="item-inspection">${item.text}</div>
+        </div>
+        <div class="score-row">
+          ${[1,2,3,4,5].map(s => `<button class="score-btn s${s}" onclick="setScore('${key}',${s},this)">${s}</button>`).join('')}
+          <button class="score-btn na-btn" onclick="setNA('${key}',this)">N/A</button>
+        </div>
+        <div class="score-label">
+          <span>Very Poor</span><span></span><span>Fair</span><span></span><span>Excellent</span><span></span>
+        </div>
+        <div class="na-overlay" id="na_${key}">This item is marked as Not Applicable for this outlet.</div>
+        <textarea class="remarks-input" id="rem_${key}" placeholder="Remarks (optional)..." oninput="setRemarks('${key}',this.value)"></textarea>
+      </div>`;
+    });
+  });
+  document.getElementById('auditBody').innerHTML = html;
+}
+
+function setScore(key, val, btn) {
+  scores[key] = val;
+  delete naItems[key];
+  const item = document.getElementById('item_' + key);
+  item.classList.remove('scored-na');
+  document.getElementById('na_' + key).style.display = 'none';
+  const row = btn.parentElement;
+  row.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateScoreBar();
+}
+
+function setNA(key, btn) {
+  naItems[key] = true;
+  delete scores[key];
+  const item = document.getElementById('item_' + key);
+  item.classList.add('scored-na');
+  document.getElementById('na_' + key).style.display = 'block';
+  const row = btn.parentElement;
+  row.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateScoreBar();
+}
+
+function setRemarks(key, val) {
+  remarks[key] = val;
+}
+
+function updateScoreBar() {
+  const total = Object.values(scores).reduce((a, b) => a + b, 0);
+  const totalItems = auditData.reduce((a, s) => a + s.items.length, 0);
+  const responded = Object.keys(scores).length + Object.keys(naItems).length;
+  const filledPct = Math.round((responded / totalItems) * 100);
+  const naCount = Object.keys(naItems).length;
+  const effectiveMax = maxScore - (naCount * 5);
+  const pct = effectiveMax > 0 ? Math.round((total / effectiveMax) * 100) : 0;
+  document.getElementById('scoreNum').textContent = total;
+  document.getElementById('progressFill').style.width = filledPct + '%';
+  document.getElementById('progressPct').textContent = `${filledPct}% done (${total}/${effectiveMax} pts)`;
+}
+
+// ============================
+// SUBMIT
+// ============================
+async function submitAudit() {
+  const outletName = document.getElementById('outletName').value.trim();
+  const auditBy = document.getElementById('auditBy').value.trim();
+  const picName = document.getElementById('picName').value.trim();
+  const auditDate = document.getElementById('auditDate').value;
+  const totalItems = auditData.reduce((a, s) => a + s.items.length, 0);
+  const responded = Object.keys(scores).length + Object.keys(naItems).length;
+
+  if (responded < totalItems) {
+    const remaining = totalItems - responded;
+    const ok = window.confirm(`${remaining} item(s) not yet scored. Submit anyway?`);
+    if (!ok) return;
+  }
+
+  const naCount = Object.keys(naItems).length;
+  const total = Object.values(scores).reduce((a, b) => a + b, 0);
+  const effectiveMax = maxScore - (naCount * 5);
+  const pct = effectiveMax > 0 ? ((total / effectiveMax) * 100).toFixed(2) : 0;
+  const typeLabel = currentType === 'both' ? 'full' : currentType;
+
+  showLoading('Submitting audit...');
+  try {
+    const subRes = await fetch(`${SUPABASE_URL}/rest/v1/audit_submissions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        outlet_name: outletName,
+        audit_type: typeLabel,
+        audit_by: auditBy,
+        pic_name: picName,
+        day_date: auditDate,
+        total_score: total,
+        max_score: effectiveMax,
+        percentage: parseFloat(pct),
+        remarks_summary: buildRemarksSummary()
+      })
+    });
+
+    if (!subRes.ok) {
+      const errText = await subRes.text();
+      throw new Error('Server error: ' + errText);
+    }
+    const subData = await subRes.json();
+    const submissionId = subData[0].id;
+
+    // Insert items
+    const items = [];
+    auditData.forEach((section, si) => {
+      section.items.forEach((item, ii) => {
+        const key = `${si}_${ii}`;
+        items.push({
+          submission_id: submissionId,
+          category: section.category,
+          item_no: item.no,
+          inspection: item.text,
+          score: naItems[key] ? null : (scores[key] || null),
+          remarks: remarks[key] || null,
+          is_non_negotiable: section.isNN || false,
+          is_na: naItems[key] ? true : false
+        });
+      });
+    });
+
+    const itemRes = await fetch(`${SUPABASE_URL}/rest/v1/audit_items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`
+      },
+      body: JSON.stringify(items)
+    });
+    if (!itemRes.ok) {
+      const errText = await itemRes.text();
+      throw new Error('Items save error: ' + errText);
+    }
+
+    // Save for PDF
+    lastSubmission = {
+      outletName, auditBy, picName, auditDate,
+      type: currentType, total, effectiveMax, pct,
+      items: items.map((it, idx) => {
+        const key = Object.keys(scores).length > 0 ? null : null;
+        return it;
+      })
+    };
+    // rebuild with full data for PDF
+    lastSubmission.itemsFull = [];
+    auditData.forEach((section, si) => {
+      section.items.forEach((item, ii) => {
+        const key = `${si}_${ii}`;
+        lastSubmission.itemsFull.push({
+          category: section.category,
+          no: item.no,
+          text: item.text,
+          score: naItems[key] ? 'N/A' : (scores[key] || '-'),
+          remarks: remarks[key] || '',
+          isNN: section.isNN || false
+        });
+      });
+    });
+
+    hideLoading();
+    document.getElementById('finalScore').textContent = `${total} / ${effectiveMax}`;
+    document.getElementById('finalPct').textContent = `${pct}% — ${getGrade(parseFloat(pct))}`;
+    document.getElementById('headerSub').textContent = 'Audit Complete ✅';
+    document.getElementById('scoreBar').style.display = 'none';
+    showScreen('screenSuccess');
+
+  } catch (err) {
+    hideLoading();
+    showToast('❌ Error: ' + err.message);
+    console.error(err);
+  }
+}
+
+function buildRemarksSummary() {
+  const parts = [];
+  auditData.forEach((section, si) => {
+    section.items.forEach((item, ii) => {
+      const key = `${si}_${ii}`;
+      if (remarks[key]) parts.push(`[${section.category} #${item.no}] ${remarks[key]}`);
+    });
+  });
+  return parts.join(' | ') || null;
+}
+
+function getGrade(pct) {
+  if (pct >= 90) return '⭐ Excellent';
+  if (pct >= 75) return '✅ Good';
+  if (pct >= 60) return '⚠️ Satisfactory';
+  return '❌ Needs Improvement';
+}
+
+// ============================
+// PDF GENERATION
+// ============================
+async function downloadPDF() {
+  if (!lastSubmission) { showToast('No submission data'); return; }
+  showLoading('Generating PDF...');
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
+    // Header
+    doc.setFillColor(26, 86, 219);
+    doc.rect(0, 0, pageW, 36, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    const typeNames = { front:'Front of House (FOH)', kitchen:'Back of House (BOH)', both:'Full Audit (FOH + BOH)', full:'Full Audit (FOH + BOH)' };
+    doc.text('OUTLET AUDIT REPORT', margin, 14);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(typeNames[lastSubmission.type] || lastSubmission.type, margin, 22);
+    doc.text(`Generated: ${new Date().toLocaleDateString('en-MY', {day:'numeric',month:'long',year:'numeric'})}`, margin, 29);
+
+    // Score badge
+    const pctNum = parseFloat(lastSubmission.pct);
+    const badgeColor = pctNum >= 90 ? [22,163,74] : pctNum >= 75 ? [22,163,74] : pctNum >= 60 ? [217,119,6] : [220,38,38];
+    doc.setFillColor(...badgeColor);
+    doc.roundedRect(pageW - 52, 6, 38, 22, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${lastSubmission.pct}%`, pageW - 33, 18, { align: 'center' });
+    doc.setFontSize(8);
+    doc.text(getGrade(pctNum).replace(/[^a-zA-Z ]/g, '').trim(), pageW - 33, 25, { align: 'center' });
+
+    // Info box
+    doc.setTextColor(15, 23, 42);
+    doc.setFillColor(248, 250, 252);
+    doc.rect(margin, 42, pageW - margin * 2, 32, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.rect(margin, 42, pageW - margin * 2, 32);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('OUTLET', margin + 4, 51);
+    doc.text('AUDITED BY', margin + 4, 59);
+    doc.text('PIC', margin + 4, 67);
+    doc.setFont('helvetica', 'normal');
+    const col2 = margin + 38;
+    doc.text(lastSubmission.outletName, col2, 51);
+    doc.text(lastSubmission.auditBy, col2, 59);
+    doc.text(lastSubmission.picName, col2, 67);
+
+    const col3 = pageW / 2 + 10;
+    doc.setFont('helvetica', 'bold');
+    doc.text('DATE', col3, 51);
+    doc.text('TOTAL SCORE', col3, 59);
+    doc.text('GRADE', col3, 67);
+    doc.setFont('helvetica', 'normal');
+    doc.text(lastSubmission.auditDate, col3 + 32, 51);
+    doc.text(`${lastSubmission.total} / ${lastSubmission.effectiveMax} pts`, col3 + 32, 59);
+    doc.text(getGrade(pctNum).replace(/[^a-zA-Z ]/g, '').trim(), col3 + 32, 67);
+
+    // Build table rows grouped by category
+    const rows = lastSubmission.itemsFull.map(item => {
+      const scoreVal = item.score;
+      return [
+        item.no.toString(),
+        item.text,
+        scoreVal === 'N/A' ? 'N/A' : (scoreVal || '-'),
+        item.remarks || ''
+      ];
+    });
+
+    // Group by category for headers
+    const tableBody = [];
+    let lastCat = null;
+    lastSubmission.itemsFull.forEach((item) => {
+      if (item.category !== lastCat) {
+        tableBody.push([{ content: item.category + (item.isNN ? ' (NON-NEGOTIABLE)' : ''), colSpan: 4, styles: { fillColor: item.isNN ? [220,38,38] : [26,86,219], textColor: 255, fontStyle: 'bold', fontSize: 9 } }]);
+        lastCat = item.category;
+      }
+      const score = item.score;
+      let scoreColor = [100, 116, 139];
+      if (score === 'N/A') scoreColor = [107, 114, 128];
+      else if (score === 5) scoreColor = [22, 163, 74];
+      else if (score === 4) scoreColor = [74, 222, 128];
+      else if (score === 3) scoreColor = [234, 179, 8];
+      else if (score === 2) scoreColor = [245, 158, 11];
+      else if (score === 1) scoreColor = [220, 38, 38];
+
+      tableBody.push([
+        { content: String(item.no), styles: { halign: 'center' } },
+        { content: item.text, styles: { fontSize: 8 } },
+        { content: score === 'N/A' ? 'N/A' : (score || '-'), styles: { halign: 'center', textColor: scoreColor, fontStyle: 'bold' } },
+        { content: item.remarks || '', styles: { fontSize: 8, textColor: [100, 116, 139] } }
+      ]);
+    });
+
+    doc.autoTable({
+      startY: 80,
+      head: [['#', 'Inspection Item', 'Score', 'Remarks']],
+      body: tableBody,
+      margin: { left: margin, right: margin },
+      styles: { fontSize: 8.5, cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2 },
+      headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 90 },
+        2: { cellWidth: 18 },
+        3: { cellWidth: 'auto' }
+      },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      didDrawPage: (data) => {
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`Page ${data.pageNumber} — Outlet Audit System`, pageW / 2, doc.internal.pageSize.getHeight() - 8, { align: 'center' });
+      }
+    });
+
+    const filename = `audit_${lastSubmission.outletName.replace(/\s+/g,'_')}_${lastSubmission.auditDate}.pdf`;
+    doc.save(filename);
+    hideLoading();
+    showToast('✅ PDF downloaded!');
+  } catch (err) {
+    hideLoading();
+    showToast('PDF error: ' + err.message);
+    console.error(err);
+  }
+}
+
+// ============================
+// RESET
+// ============================
+function resetApp() {
+  currentType = null;
+  scores = {}; remarks = {}; naItems = {};
+  auditData = [];
+  lastSubmission = null;
+  ['cardFront','cardKitchen','cardBoth'].forEach(id => document.getElementById(id).classList.remove('selected'));
+  document.getElementById('outletName').value = '';
+  document.getElementById('auditBy').value = '';
+  document.getElementById('picName').value = '';
+  document.getElementById('headerTitle').textContent = '🏢 Outlet Audit';
+  document.getElementById('headerSub').textContent = 'Select audit type to begin';
+  showScreen('screenType');
+}
+
+// ============================
+// UTILS
+// ============================
+function showLoading(text) {
+  document.getElementById('loadingText').textContent = text || 'Loading...';
+  document.getElementById('loadingOverlay').style.display = 'flex';
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').style.display = 'none';
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>
